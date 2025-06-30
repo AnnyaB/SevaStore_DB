@@ -19,7 +19,12 @@ app.config['SECRET_KEY'] = os.getenv('SECRET_KEY')
 
 # PostgreSQL connection
 DATABASE_URL = os.getenv('DATABASE_URL')
-conn = psycopg2.connect(DATABASE_URL)
+try:
+    conn = psycopg2.connect(DATABASE_URL)
+    print("Database connection successful!")
+except Exception as e:
+    print("Error connecting to the database:", e)
+    raise
 
 # JWT decorator
 def token_required(f):
@@ -63,13 +68,15 @@ def signup():
     if not all([username, email, password]):
         return jsonify({"error": "Missing fields"}), 400
 
+    # Properly hash password with bcrypt and decode to string for storage
     hashed = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt())
+    hashed_str = hashed.decode('utf-8')
 
     with conn.cursor() as cur:
         try:
             cur.execute(
                 "INSERT INTO Users (username, email, password_hash, role) VALUES (%s, %s, %s, %s);",
-                (username, email, hashed.decode('utf-8'), role)
+                (username, email, hashed_str, role)
             )
             conn.commit()
             return jsonify({"message": "User registered successfully!"})
@@ -90,6 +97,12 @@ def login():
             return jsonify({"error": "User not found"}), 404
 
         stored_hash = user["password_hash"]
+        
+        # Defensive check: stored_hash must be a valid bcrypt hash starting with $2b$ or $2a$ or $2y$
+        if not (stored_hash.startswith("$2a$") or stored_hash.startswith("$2b$") or stored_hash.startswith("$2y$")):
+            return jsonify({"error": "User password hash format invalid. Please reset your password."}), 500
+        
+        # Check password using bcrypt
         if not bcrypt.checkpw(password.encode('utf-8'), stored_hash.encode('utf-8')):
             return jsonify({"error": "Invalid credentials"}), 401
 
@@ -160,6 +173,31 @@ def donate():
         )
         conn.commit()
     return jsonify({"message": "Donation received!"})
+
+@app.route("/reset_password", methods=["POST"])
+def reset_password():
+    data = request.json
+    email = data.get("email")
+    new_password = data.get("new_password")
+
+    if not email or not new_password:
+        return jsonify({"error": "Email and new password are required"}), 400
+
+    hashed = bcrypt.hashpw(new_password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+
+    with conn.cursor() as cur:
+        # Check if user exists
+        cur.execute("SELECT user_id FROM Users WHERE email = %s;", (email,))
+        user = cur.fetchone()
+        if not user:
+            return jsonify({"error": "User not found"}), 404
+
+        # Update password hash
+        cur.execute("UPDATE Users SET password_hash = %s WHERE email = %s;", (hashed, email))
+        conn.commit()
+
+    return jsonify({"message": "Password reset successful!"})
+
 
 @app.route("/admin/add_product", methods=["POST"])
 @token_required

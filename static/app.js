@@ -130,3 +130,29 @@ orderForm.addEventListener('submit', async (e) => {
     : `❌ ${data.error || "Invalid product ID or out of stock"}`;
 });
 
+// Reset password handler
+const resetPasswordForm = document.getElementById('resetPasswordForm');
+resetPasswordForm.addEventListener('submit', async (e) => {
+  e.preventDefault();
+
+  const email = document.getElementById('resetEmail').value;
+  const new_password = document.getElementById('resetNewPassword').value;
+
+  const res = await fetch(`${apiBase}/reset_password`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email, new_password })
+  });
+
+  const data = await res.json();
+  const statusEl = document.getElementById('resetStatus');
+
+  if (res.ok) {
+    statusEl.textContent = '✅ Password reset successful! Please login with your new password.';
+    statusEl.className = 'message success';
+    resetPasswordForm.reset();
+  } else {
+    statusEl.textContent = `❌ ${data.error || 'Failed to reset password'}`;
+    statusEl.className = 'message error';
+  }
+});
