@@ -1,4 +1,4 @@
-const apiBase = 'http://127.0.0.1:5000';
+const apiBase = window.location.origin;;
 let jwtToken = '';
 let currentUser = null;
 
