@@ -1,4 +1,6 @@
-const apiBase = window.location.origin;
+const apiBase = window.location.hostname.includes('localhost')
+  ? 'http://localhost:5000'
+  : 'https://sevastore.onrender.com';
 let jwtToken = '';
 let currentUser = null;
 
