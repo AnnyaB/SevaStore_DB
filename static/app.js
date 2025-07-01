@@ -1,4 +1,4 @@
-const apiBase = window.location.origin;;
+const apiBase = window.location.origin;
 let jwtToken = '';
 let currentUser = null;
 
@@ -66,7 +66,7 @@ loginForm.addEventListener('submit', async (e) => {
   }
 });
 
-// Admin add product
+// Admin add product handler (only one listener, cleaned)
 const productForm = document.getElementById('productForm');
 productForm.addEventListener('submit', async (e) => {
   e.preventDefault();
@@ -77,26 +77,36 @@ productForm.addEventListener('submit', async (e) => {
   }
 
   const body = {
-    name: document.getElementById('productName').value,
-    category: document.getElementById('productCategory').value,
-    description: document.getElementById('productDesc').value,
+    name: document.getElementById('productName').value.trim(),
+    category: document.getElementById('productCategory').value.trim(),
+    description: document.getElementById('productDesc').value.trim(),
     price: parseFloat(document.getElementById('productPrice').value),
     stock: parseInt(document.getElementById('productStock').value),
-    image_url: document.getElementById('productImage').value
+    image_url: document.getElementById('productImage').value.trim()
   };
 
-  const res = await fetch(`${apiBase}/admin/add_product`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${jwtToken}`
-    },
-    body: JSON.stringify(body)
-  });
+  try {
+    const res = await fetch(`${apiBase}/admin/add_product`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${jwtToken}`
+      },
+      body: JSON.stringify(body)
+    });
 
-  const result = await res.json();
-  alert(result.message || result.error);
-  fetchProducts();
+    const result = await res.json();
+
+    if (res.ok) {
+      alert("✅ Product added successfully!");
+      productForm.reset();
+      fetchProducts();  // Refresh the product list on success
+    } else {
+      alert(`❌ Error: ${result.error || 'Failed to add product'}`);
+    }
+  } catch (error) {
+    alert(`❌ Network error: ${error.message}`);
+  }
 });
 
 // Customer place order
@@ -154,46 +164,5 @@ resetPasswordForm.addEventListener('submit', async (e) => {
   } else {
     statusEl.textContent = `❌ ${data.error || 'Failed to reset password'}`;
     statusEl.className = 'message error';
-  }
-});
-
-productForm.addEventListener('submit', async (e) => {
-  e.preventDefault();
-
-  if (!jwtToken) {
-    alert("Please login as admin first.");
-    return;
-  }
-
-  const body = {
-    name: document.getElementById('productName').value.trim(),
-    category: document.getElementById('productCategory').value.trim(),
-    description: document.getElementById('productDesc').value.trim(),
-    price: parseFloat(document.getElementById('productPrice').value),
-    stock: parseInt(document.getElementById('productStock').value),
-    image_url: document.getElementById('productImage').value.trim()
-  };
-
-  try {
-    const res = await fetch(`${apiBase}/admin/add_product`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${jwtToken}`
-      },
-      body: JSON.stringify(body)
-    });
-
-    const result = await res.json();
-
-    if (res.ok) {
-      alert("✅ Product added successfully!");
-      productForm.reset();
-      fetchProducts();
-    } else {
-      alert(`❌ Error: ${result.error || 'Failed to add product'}`);
-    }
-  } catch (error) {
-    alert(`❌ Network error: ${error.message}`);
   }
 });
