@@ -156,3 +156,44 @@ resetPasswordForm.addEventListener('submit', async (e) => {
     statusEl.className = 'message error';
   }
 });
+
+productForm.addEventListener('submit', async (e) => {
+  e.preventDefault();
+
+  if (!jwtToken) {
+    alert("Please login as admin first.");
+    return;
+  }
+
+  const body = {
+    name: document.getElementById('productName').value.trim(),
+    category: document.getElementById('productCategory').value.trim(),
+    description: document.getElementById('productDesc').value.trim(),
+    price: parseFloat(document.getElementById('productPrice').value),
+    stock: parseInt(document.getElementById('productStock').value),
+    image_url: document.getElementById('productImage').value.trim()
+  };
+
+  try {
+    const res = await fetch(`${apiBase}/admin/add_product`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${jwtToken}`
+      },
+      body: JSON.stringify(body)
+    });
+
+    const result = await res.json();
+
+    if (res.ok) {
+      alert("✅ Product added successfully!");
+      productForm.reset();
+      fetchProducts();
+    } else {
+      alert(`❌ Error: ${result.error || 'Failed to add product'}`);
+    }
+  } catch (error) {
+    alert(`❌ Network error: ${error.message}`);
+  }
+});
